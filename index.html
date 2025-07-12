@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Mapa - Campo Minado</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .control-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-group label {
+            font-weight: 500;
+            color: #1a1a1a;
+            font-size: 0.9rem;
+        }
+
+        .input-group input {
+            padding: 0.75rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+            width: 80px;
+            text-align: center;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102,126,234,0.4);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #1a1a1a;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #e8e8e8;
+            transform: translateY(-1px);
+        }
+
+        .game-board.hidden {
+            display: none;
+        }
+
+        .game-board {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        .game-board.hidden {
+            display: none;
+        }
+
+        .hidden-message {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .hidden-message.show {
+            display: block;
+        }
+
+        .hidden-message h2 {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .hidden-message p {
+            font-size: 1.1rem;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .hidden-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .board-container {
+            display: flex;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        table {
+            border-collapse: separate;
+            border-spacing: 4px;
+            margin: 0 auto;
+        }
+
+        .cell {
+            width: 60px;
+            height: 60px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .cell.free {
+            background: linear-gradient(45deg, #4CAF50, #66BB6A);
+            color: white;
+        }
+
+        .cell.bomb {
+            background: linear-gradient(45deg, #F44336, #EF5350);
+            color: white;
+        }
+
+        .cell.empty {
+            background: linear-gradient(45deg, #f5f5f5, #e8e8e8);
+            color: #666;
+            border: 2px dashed #ccc;
+        }
+
+        .cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+
+        .cell.free:hover {
+            background: linear-gradient(45deg, #45a049, #5cb85c);
+        }
+
+        .cell.bomb:hover {
+            background: linear-gradient(45deg, #da190b, #dc4c41);
+        }
+
+        .cell.empty:hover {
+            background: linear-gradient(45deg, #e8e8e8, #ddd);
+        }
+
+        .coordinate {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .row-number {
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.8);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+        }
+
+        .legend-color.free {
+            background: linear-gradient(45deg, #4CAF50, #66BB6A);
+        }
+
+        .legend-color.bomb {
+            background: linear-gradient(45deg, #F44336, #EF5350);
+        }
+
+        .legend-color.empty {
+            background: linear-gradient(45deg, #f5f5f5, #e8e8e8);
+            border: 2px dashed #ccc;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255,255,255,0.8);
+            border-radius: 12px;
+            min-width: 100px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                padding: 1.5rem;
+            }
+            
+            .control-group {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .cell {
+                width: 50px;
+                height: 50px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Editor de Mapa - Campo Minado</h1>
+            <p>Crie seu próprio mapa personalizado para o jogo</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <div class="input-group">
+                    <label for="columns">Colunas</label>
+                    <input type="number" id="columns" min="2" max="15" value="3">
+                </div>
+                <div class="input-group">
+                    <label for="rows">Linhas</label>
+                    <input type="number" id="rows" min="2" max="15" value="5">
+                </div>
+                <button class="btn btn-primary" onclick="createBoard()">Criar Mapa</button>
+                <button class="btn btn-secondary" onclick="clearBoard()">Limpar Tudo</button>
+                <button class="btn btn-secondary" onclick="toggleBoardVisibility()" id="toggleBtn">Esconder Mapa</button>
+            </div>
+        </div>
+
+        <div class="game-board" id="gameBoard">
+            <div class="board-container">
+                <table id="gameTable">
+                    <!-- Tabela será gerada dinamicamente -->
+                </table>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color free"></div>
+                    <span>Caminho Livre (X)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color bomb"></div>
+                    <span>Bomba (💣)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color empty"></div>
+                    <span>Não Definido</span>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="freeCount">0</div>
+                    <div class="stat-label">Caminhos Livres</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="bombCount">0</div>
+                    <div class="stat-label">Bombas</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalCount">0</div>
+                    <div class="stat-label">Total de Células</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hidden-message" id="hiddenMessage">
+            <div class="hidden-icon">🙈</div>
+            <h2>Mapa Oculto</h2>
+            <p>O mapa está escondido para não revelar a localização das bombas e caminhos livres.</p>
+            <p>Clique em "Mostrar Mapa" para voltar a editar.</p>
+        </div>
+    </div>
+
+    <script>
+        let gameBoard = [];
+        let currentRows = 5;
+        let currentCols = 3;
+        let isBoardVisible = true;
+
+        function toggleBoardVisibility() {
+            const gameBoard = document.getElementById('gameBoard');
+            const hiddenMessage = document.getElementById('hiddenMessage');
+            const toggleBtn = document.getElementById('toggleBtn');
+            
+            if (isBoardVisible) {
+                gameBoard.classList.add('hidden');
+                hiddenMessage.classList.add('show');
+                toggleBtn.textContent = 'Mostrar Mapa';
+                toggleBtn.innerHTML = '👁️ Mostrar Mapa';
+                isBoardVisible = false;
+            } else {
+                gameBoard.classList.remove('hidden');
+                hiddenMessage.classList.remove('show');
+                toggleBtn.textContent = 'Esconder Mapa';
+                toggleBtn.innerHTML = '🙈 Esconder Mapa';
+                isBoardVisible = true;
+            }
+        }
+
+        function createBoard() {
+            const rows = parseInt(document.getElementById('rows').value);
+            const cols = parseInt(document.getElementById('columns').value);
+            
+            if (rows < 2 || rows > 15 || cols < 2 || cols > 15) {
+                alert('Por favor, escolha entre 2 e 15 para linhas e colunas.');
+                return;
+            }
+
+            currentRows = rows;
+            currentCols = cols;
+            gameBoard = Array(rows).fill(null).map(() => Array(cols).fill('bomb'));
+            
+            renderBoard();
+            updateStats();
+        }
+
+        function renderBoard() {
+            const table = document.getElementById('gameTable');
+            table.innerHTML = '';
+
+            // Criar header com números das colunas
+            const headerRow = document.createElement('tr');
+            const emptyCell = document.createElement('th');
+            emptyCell.style.width = '30px';
+            headerRow.appendChild(emptyCell);
+            
+            for (let col = 0; col < currentCols; col++) {
+                const th = document.createElement('th');
+                th.textContent = col + 1;
+                th.style.color = '#667eea';
+                th.style.fontWeight = '600';
+                th.style.textAlign = 'center';
+                th.style.padding = '0.5rem';
+                headerRow.appendChild(th);
+            }
+            table.appendChild(headerRow);
+
+            // Criar linhas do tabuleiro
+            for (let row = 0; row < currentRows; row++) {
+                const tr = document.createElement('tr');
+                
+                // Número da linha
+                const rowHeader = document.createElement('td');
+                rowHeader.textContent = row + 1;
+                rowHeader.style.color = '#667eea';
+                rowHeader.style.fontWeight = '600';
+                rowHeader.style.textAlign = 'center';
+                rowHeader.style.padding = '0.5rem';
+                tr.appendChild(rowHeader);
+                
+                for (let col = 0; col < currentCols; col++) {
+                    const td = document.createElement('td');
+                    const button = document.createElement('button');
+                    button.className = `cell ${gameBoard[row][col]}`;
+                    button.onclick = () => toggleCell(row, col);
+                    
+                    // Definir conteúdo da célula
+                    if (gameBoard[row][col] === 'free') {
+                        button.innerHTML = 'X';
+                    } else if (gameBoard[row][col] === 'bomb') {
+                        button.innerHTML = '💣';
+                    } else {
+                        button.innerHTML = '?';
+                    }
+                    
+                    td.appendChild(button);
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+        }
+
+        function toggleCell(row, col) {
+            const currentState = gameBoard[row][col];
+            
+            if (currentState === 'bomb') {
+                gameBoard[row][col] = 'free';
+            } else if (currentState === 'free') {
+                gameBoard[row][col] = 'empty';
+            } else {
+                gameBoard[row][col] = 'bomb';
+            }
+            
+            renderBoard();
+            updateStats();
+        }
+
+        function clearBoard() {
+            gameBoard = Array(currentRows).fill(null).map(() => Array(currentCols).fill('bomb'));
+            renderBoard();
+            updateStats();
+        }
+
+        function updateStats() {
+            let freeCount = 0;
+            let bombCount = 0;
+            let totalCount = currentRows * currentCols;
+
+            for (let row = 0; row < currentRows; row++) {
+                for (let col = 0; col < currentCols; col++) {
+                    if (gameBoard[row][col] === 'free') {
+                        freeCount++;
+                    } else if (gameBoard[row][col] === 'bomb') {
+                        bombCount++;
+                    }
+                }
+            }
+
+            document.getElementById('freeCount').textContent = freeCount;
+            document.getElementById('bombCount').textContent = bombCount;
+            document.getElementById('totalCount').textContent = totalCount;
+        }
+
+        // Inicializar o tabuleiro
+        currentRows = 5;
+        currentCols = 3;
+        gameBoard = Array(currentRows).fill(null).map(() => Array(currentCols).fill('bomb'));
+        createBoard();
+    </script>
+</body>
+</html>
